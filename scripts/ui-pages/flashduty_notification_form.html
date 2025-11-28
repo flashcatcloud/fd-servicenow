@@ -1,0 +1,418 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+  UI Page: flashduty_notification_form
+  
+  Purpose: Dialog form for configuring Flashduty notifications
+  
+  ServiceNow Configuration:
+  - Name: flashduty_notification_form
+  - Category: General
+  - Protection policy: itil
+  
+  Note: This content goes in the "HTML" field of the UI Page
+-->
+<j:jelly trim="false" xmlns:j="jelly:core" xmlns:g="glide" xmlns:j2="null" xmlns:g2="null">
+<g:ui_form>
+<style>
+  /* Hide unnecessary ServiceNow elements */
+  .performance-analytics,
+  .response-time-indicator,
+  [data-analytics-trigger] {
+    display: none !important;
+  }
+  
+  .modal-header .close {
+    display: block !important;
+  }
+  
+  /* Form container */
+  .flashduty-form {
+    padding: 20px;
+    max-height: 700px;
+    overflow-y: auto;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  
+  /* Form groups */
+  .fd-form-group {
+    margin-bottom: 20px;
+  }
+  
+  .fd-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+  }
+  
+  .fd-required {
+    color: #ff0000;
+    margin-left: 2px;
+  }
+  
+  .fd-form-group input[type="text"],
+  .fd-form-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+  
+  /* Members list */
+  .fd-members-container {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  
+  .fd-select-all {
+    padding: 10px;
+    background: #e3f2fd;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    border: 1px solid #2196f3;
+  }
+  
+  .fd-select-all label {
+    margin: 0 !important;
+    cursor: pointer;
+    font-weight: normal !important;
+    display: flex;
+    align-items: center;
+  }
+  
+  .fd-member-item {
+    padding: 8px 12px;
+    margin: 5px 0;
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .fd-member-item:hover {
+    background-color: #f0f7ff;
+    border-color: #2196f3;
+  }
+  
+  .fd-member-item input[type="checkbox"] {
+    margin-right: 10px;
+    pointer-events: none;
+  }
+  
+  .fd-member-item label {
+    margin: 0 !important;
+    cursor: pointer;
+    flex: 1;
+    font-weight: normal !important;
+    pointer-events: none;
+  }
+  
+  .fd-empty-message {
+    text-align: center;
+    color: #999;
+    padding: 20px;
+    font-style: italic;
+  }
+  
+  .fd-loading {
+    text-align: center;
+    color: #666;
+    padding: 20px;
+  }
+  
+  /* Notification type options */
+  .fd-notify-options {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+  }
+  
+  .fd-notify-option {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background-color: white;
+    min-width: 80px;
+    justify-content: center;
+    user-select: none;
+  }
+  
+  .fd-notify-option:hover {
+    border-color: #2196f3;
+    background-color: #f0f7ff;
+  }
+  
+  .fd-notify-option.checked {
+    border-color: #2196f3;
+    background-color: #e3f2fd;
+  }
+  
+  .fd-notify-option.checked label {
+    font-weight: bold !important;
+    color: #2196f3;
+  }
+  
+  .fd-notify-option input[type="checkbox"] {
+    margin-right: 8px;
+    pointer-events: none;
+  }
+  
+  .fd-notify-option label {
+    margin: 0 !important;
+    cursor: pointer;
+    font-weight: normal !important;
+    pointer-events: none;
+  }
+  
+  /* Policy dropdown */
+  .fd-policy-wrapper {
+    position: relative;
+  }
+  
+  .fd-policy-search {
+    width: 100%;
+    padding: 8px 30px 8px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+  
+  .fd-policy-search:focus {
+    outline: none;
+    border-color: #2196f3;
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+  }
+  
+  .fd-policy-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #666;
+  }
+  
+  .fd-policy-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ccc;
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 300px;
+    overflow-y: auto;
+    display: none;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .fd-policy-dropdown.show {
+    display: block;
+  }
+  
+  .fd-policy-option {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background-color 0.2s;
+  }
+  
+  .fd-policy-option:hover {
+    background-color: #f0f7ff;
+  }
+  
+  .fd-policy-option.selected {
+    background-color: #e3f2fd;
+    font-weight: 600;
+  }
+  
+  .fd-policy-option.hidden {
+    display: none;
+  }
+  
+  .fd-policy-no-results {
+    padding: 20px;
+    text-align: center;
+    color: #999;
+    font-style: italic;
+  }
+  
+  .fd-policy-details {
+    margin-top: 10px;
+    padding: 12px;
+    background-color: #f5f5f5;
+    border-left: 3px solid #2196f3;
+    border-radius: 4px;
+    font-size: 13px;
+    line-height: 1.8;
+    color: #555;
+  }
+  
+  .fd-recommended-badge {
+    background: #4caf50;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    margin-left: 8px;
+  }
+  
+  .fd-team-badge {
+    background: #9c27b0;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  
+  .fd-schedule-badge {
+    background: #ff9800;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  
+  .fd-escalation-path {
+    line-height: 1.6;
+  }
+  
+  .fd-layer-item {
+    padding: 6px 0;
+    border-bottom: 1px dashed #ddd;
+  }
+  
+  .fd-layer-item:last-child {
+    border-bottom: none;
+  }
+  
+  /* Buttons */
+  .fd-buttons {
+    margin-top: 30px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+  
+  .fd-btn-primary {
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background-color 0.2s;
+  }
+  
+  .fd-btn-primary:hover {
+    background-color: #1976d2;
+  }
+  
+  .fd-btn-primary:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+</style>
+
+<div class="flashduty-form">
+  <!-- Hidden fields -->
+  <input type="hidden" id="incident_sys_id" value="${RP.getParameterValue('incident_sys_id')}" />
+  <input type="hidden" id="initial_group" value="${RP.getParameterValue('assignment_group')}" />
+  <input type="hidden" id="initial_assigned_to" value="${RP.getParameterValue('assigned_to')}" />
+  
+  <!-- Assignment Group -->
+  <div class="fd-form-group">
+    <label for="group">Assignment Group</label>
+    <g:ui_reference id="group" name="group" table="sys_user_group" />
+  </div>
+  
+  <!-- Notification Members -->
+  <div class="fd-form-group">
+    <label>Select Notification Members <span class="fd-required">*</span></label>
+    <div id="select_all_container" class="fd-select-all" style="display: none;">
+      <label>
+        <input type="checkbox" id="select_all_checkbox" />
+        Select All Members
+      </label>
+    </div>
+    <div id="members_list" class="fd-members-container">
+      <div class="fd-empty-message">Please select Assignment Group first</div>
+    </div>
+  </div>
+
+  <!-- Notification Type -->
+  <div class="fd-form-group">
+    <label>Notification Type <span class="fd-required">*</span></label>
+    <div class="fd-notify-options">
+      <div class="fd-notify-option" data-value="sms">
+        <input type="checkbox" name="notify_type" id="notify_sms" value="sms" />
+        <label for="notify_sms">SMS</label>
+      </div>
+      <div class="fd-notify-option" data-value="voice">
+        <input type="checkbox" name="notify_type" id="notify_voice" value="voice" />
+        <label for="notify_voice">Voice</label>
+      </div>
+      <div class="fd-notify-option" data-value="teams">
+        <input type="checkbox" name="notify_type" id="notify_teams" value="teams" />
+        <label for="notify_teams">Teams</label>
+      </div>
+      <div class="fd-notify-option" data-value="email">
+        <input type="checkbox" name="notify_type" id="notify_email" value="email" />
+        <label for="notify_email">Email</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Escalation Policy -->
+  <div class="fd-form-group">
+    <label for="policy_search">Select Escalation Policy</label>
+    <div class="fd-policy-wrapper">
+      <input 
+        type="text" 
+        id="policy_search" 
+        class="fd-policy-search" 
+        placeholder="Search or select policy..."
+        autocomplete="off"
+      />
+      <span class="fd-policy-icon">▼</span>
+      <div id="policy_dropdown" class="fd-policy-dropdown">
+        <div class="fd-policy-no-results">Please select Assignment Group first</div>
+      </div>
+      <input type="hidden" id="selected_policy" />
+    </div>
+    <div id="policy_details" style="display: none;" class="fd-policy-details">
+      <div style="font-weight: 600; margin-bottom: 8px;">Escalation Path:</div>
+      <div id="policy_details_content"></div>
+    </div>
+  </div>
+  
+  <!-- Submit Button -->
+  <div class="fd-buttons">
+    <button id="submit_btn" class="fd-btn-primary">Send to Flashduty</button>
+  </div>
+</div>
+
+</g:ui_form>
+</j:jelly>
+
