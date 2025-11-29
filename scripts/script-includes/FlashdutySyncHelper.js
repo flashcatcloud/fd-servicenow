@@ -32,17 +32,17 @@ FlashdutySyncHelper.prototype = {
    * @param {string} notifyType - Notification types (comma-separated: sms,voice,teams,email)
    * @param {Array} members - Array of member objects with sys_id, name, email
    * @param {string} externalOption - Flashduty escalation rule ID
-   * @returns {boolean} - True if successful, false otherwise
+   * @returns {Object} - {success: boolean, error: string}
    */
   sendIncidentWebhook: function(current, groupId, notifyType, members, externalOption) {
     if (!current || !current.sys_id) {
       gs.error("FlashdutySyncHelper: Invalid incident record parameter");
-      return false;
+      return { success: false, error: "Invalid incident record" };
     }
     
     if (!this.push_url) {
       gs.error("FlashdutySyncHelper: flashduty.push_url is not configured");
-      return false;
+      return { success: false, error: "Flashduty push_url is not configured in System Properties" };
     }
 
     var sysId = current.getUniqueValue() + '';
@@ -113,6 +113,7 @@ FlashdutySyncHelper.prototype = {
 
   /**
    * Send HTTP request to Flashduty
+   * @returns {Object} - {success: boolean, error: string}
    */
   _sendRequest: function(payload, incidentNumber) {
     try {
@@ -133,16 +134,18 @@ FlashdutySyncHelper.prototype = {
       
       if (httpStatus >= 200 && httpStatus < 300) {
         gs.info("FlashdutySyncHelper: Successfully sent incident " + incidentNumber);
-        return true;
+        return { success: true, error: null };
       } else {
+        var errorMsg = "HTTP " + httpStatus + ": " + responseBody;
         gs.error("FlashdutySyncHelper: Failed for incident " + incidentNumber);
-        gs.error("HTTP " + httpStatus + ": " + responseBody);
-        return false;
+        gs.error(errorMsg);
+        return { success: false, error: errorMsg };
       }
     } catch (ex) {
+      var errorMsg = "Exception: " + ex.message;
       gs.error("FlashdutySyncHelper: Exception for incident " + incidentNumber);
-      gs.error("Error: " + ex.message);
-      return false;
+      gs.error(errorMsg);
+      return { success: false, error: errorMsg };
     }
   },
   

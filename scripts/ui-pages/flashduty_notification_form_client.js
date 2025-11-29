@@ -29,6 +29,7 @@ addLoadEvent(function() {
     bindNotifyTypeEvents();
     bindSubmitEvent();
     bindPolicySearchEvents();
+    bindPolicyClearButton();
     bindSelectAllEvent();
     
     setTimeout(function() {
@@ -84,6 +85,53 @@ function loadFlashdutyConfig(callback) {
     
     if (callback) callback();
   });
+}
+
+// Hide ServiceNow performance analytics indicators
+hidePerformanceIndicators();
+
+function hidePerformanceIndicators() {
+  // Hide ServiceNow performance analytics elements
+  setTimeout(function() {
+    var selectors = [
+      '.performance-analytics',
+      '.response-time-indicator',
+      '[data-analytics-trigger]',
+      '.response-time-decorator',
+      '[class*="response-time"]',
+      '[class*="performance"]'
+    ];
+    
+    selectors.forEach(function(selector) {
+      try {
+        var elements = document.querySelectorAll(selector);
+        for (var i = 0; i < elements.length; i++) {
+          elements[i].style.display = 'none';
+          elements[i].style.visibility = 'hidden';
+        }
+      } catch(e) {
+        // Ignore selector errors
+      }
+    });
+    
+    // Also check parent window (modal context)
+    if (window.parent && window.parent.document) {
+      selectors.forEach(function(selector) {
+        try {
+          var elements = window.parent.document.querySelectorAll(selector);
+          for (var i = 0; i < elements.length; i++) {
+            elements[i].style.display = 'none';
+            elements[i].style.visibility = 'hidden';
+          }
+        } catch(e) {
+          // Ignore cross-origin or selector errors
+        }
+      });
+    }
+  }, 100);
+  
+  // Repeat check after additional delay for late-loading elements
+  setTimeout(hidePerformanceIndicators, 1000);
 }
 
 /**
@@ -461,11 +509,15 @@ function selectPolicy(element) {
   var searchInput = document.getElementById('policy_search');
   var hiddenInput = document.getElementById('selected_policy');
   var dropdown = document.getElementById('policy_dropdown');
+  var clearBtn = document.getElementById('policy_clear_btn');
   
   if (searchInput && hiddenInput && dropdown) {
     searchInput.value = label;
     hiddenInput.value = value;
     dropdown.classList.remove('show');
+    
+    // Show clear button
+    if (clearBtn) clearBtn.classList.add('show');
     
     // Mark selected
     var options = dropdown.querySelectorAll('.fd-policy-option');
@@ -785,6 +837,7 @@ function clearPolicies() {
   var searchInput = document.getElementById('policy_search');
   var hiddenInput = document.getElementById('selected_policy');
   var detailsDiv = document.getElementById('policy_details');
+  var clearBtn = document.getElementById('policy_clear_btn');
   
   if (dropdown) dropdown.innerHTML = '<div class="fd-policy-no-results">Please select an assignment group</div>';
   if (searchInput) {
@@ -794,6 +847,50 @@ function clearPolicies() {
   }
   if (hiddenInput) hiddenInput.value = '';
   if (detailsDiv) detailsDiv.style.display = 'none';
+  if (clearBtn) clearBtn.classList.remove('show');
+}
+
+/**
+ * Clear selected policy (keep dropdown options available)
+ */
+function clearPolicySelection() {
+  var searchInput = document.getElementById('policy_search');
+  var hiddenInput = document.getElementById('selected_policy');
+  var detailsDiv = document.getElementById('policy_details');
+  var dropdown = document.getElementById('policy_dropdown');
+  var clearBtn = document.getElementById('policy_clear_btn');
+  
+  console.log("Clearing policy selection");
+  
+  // Clear input and hidden values
+  if (searchInput) searchInput.value = '';
+  if (hiddenInput) hiddenInput.value = '';
+  
+  // Hide details and clear button
+  if (detailsDiv) detailsDiv.style.display = 'none';
+  if (clearBtn) clearBtn.classList.remove('show');
+  
+  // Remove selected state from all options
+  if (dropdown) {
+    var options = dropdown.querySelectorAll('.fd-policy-option');
+    for (var i = 0; i < options.length; i++) {
+      options[i].classList.remove('selected');
+    }
+  }
+}
+
+/**
+ * Bind clear button click event
+ */
+function bindPolicyClearButton() {
+  var clearBtn = document.getElementById('policy_clear_btn');
+  
+  if (clearBtn) {
+    clearBtn.onclick = function(e) {
+      e.stopPropagation();
+      clearPolicySelection();
+    };
+  }
 }
 
 /**
@@ -802,6 +899,7 @@ function clearPolicies() {
 function bindPolicySearchEvents() {
   var searchInput = document.getElementById('policy_search');
   var dropdown = document.getElementById('policy_dropdown');
+  var clearBtn = document.getElementById('policy_clear_btn');
   
   if (!searchInput || !dropdown) return;
   
@@ -834,6 +932,9 @@ function bindPolicySearchEvents() {
   };
   
   document.addEventListener('click', function(e) {
+    // Don't close dropdown if clicking clear button
+    if (clearBtn && e.target === clearBtn) return;
+    
     if (e.target !== searchInput && !dropdown.contains(e.target)) {
       dropdown.classList.remove('show');
     }
@@ -936,34 +1037,108 @@ function submitForm() {
     
     if (response && response.indexOf("Success") >= 0) {
       alert("Successfully sent to Flashduty!");
-      closeDialog();
+      // Add small delay to ensure alert is processed before closing dialog
+      setTimeout(function() {
+        closeDialog();
+      }, 1000);
     } else {
-      alert("Failed to send. Check system logs.\n\n" + response);
+      alert("Failed to send. " + response);
     }
   });
 }
 
 /**
- * Close the dialog
+ * Close the dialog using multiple approaches for reliability
  */
 function closeDialog() {
+  console.log("=== Attempting to close dialog ===");
+  
+  // Method 1: Use GlideDialogWindow API (most reliable for GlideDialogForm)
+  try {
+    if (typeof GlideDialogWindow !== 'undefined') {
+      var dialogWindow = GlideDialogWindow.get();
+      if (dialogWindow) {
+        console.log("Method 1: Closing via GlideDialogWindow.get()");
+        dialogWindow.destroy();
+        return;
+      }
+    }
+  } catch(e) {
+    console.warn("Method 1 failed: " + e.message);
+  }
+  
+  // Method 2: Access parent's GlideModal
+  try {
+    if (window.parent && window.parent.GlideModal) {
+      console.log("Method 2: Closing via parent GlideModal");
+      var modals = window.parent.GlideModal.getAll();
+      if (modals && modals.length > 0) {
+        for (var i = 0; i < modals.length; i++) {
+          modals[i].destroy();
+        }
+        return;
+      }
+    }
+  } catch(e) {
+    console.warn("Method 2 failed: " + e.message);
+  }
+  
+  // Method 3: Use parent's angular scope (for newer ServiceNow versions)
+  try {
+    if (window.parent && window.parent.angular) {
+      var modal = window.parent.document.querySelector('[uib-modal-window]');
+      if (modal) {
+        var scope = window.parent.angular.element(modal).scope();
+        if (scope && scope.$close) {
+          console.log("Method 3: Closing via Angular $close");
+          scope.$close();
+          return;
+        } else if (scope && scope.$dismiss) {
+          console.log("Method 3: Closing via Angular $dismiss");
+          scope.$dismiss();
+          return;
+        }
+      }
+    }
+  } catch(e) {
+    console.warn("Method 3 failed: " + e.message);
+  }
+  
+  // Method 4: Direct DOM manipulation (fallback)
   try {
     if (window.parent && window.parent.document) {
-      var modal = window.parent.document.querySelector('.modal');
-      var backdrop = window.parent.document.querySelector('.modal-backdrop');
+      console.log("Method 4: Closing via DOM manipulation");
       
-      if (modal) modal.parentNode.removeChild(modal);
-      if (backdrop) backdrop.parentNode.removeChild(backdrop);
+      // Find and close all modals
+      var modals = window.parent.document.querySelectorAll('.modal, [role="dialog"]');
+      var backdrops = window.parent.document.querySelectorAll('.modal-backdrop, .modal-backdrop-ng');
       
+      for (var i = 0; i < modals.length; i++) {
+        if (modals[i].parentNode) {
+          modals[i].parentNode.removeChild(modals[i]);
+        }
+      }
+      
+      for (var j = 0; j < backdrops.length; j++) {
+        if (backdrops[j].parentNode) {
+          backdrops[j].parentNode.removeChild(backdrops[j]);
+        }
+      }
+      
+      // Clean up body styles
       var body = window.parent.document.body;
       if (body) {
         body.classList.remove('modal-open');
         body.style.overflow = '';
         body.style.paddingRight = '';
       }
+      
+      console.log("Method 4: Dialog closed successfully");
     }
   } catch(e) {
-    console.error("Error closing dialog: " + e);
+    console.error("Method 4 failed: " + e.message);
   }
+  
+  console.log("=== Dialog close attempt completed ===");
 }
 
