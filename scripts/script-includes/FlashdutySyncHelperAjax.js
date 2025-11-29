@@ -312,15 +312,16 @@ FlashdutySyncHelperAjax.prototype = Object.extendsObject(
       var config = this._getConfig();
       
       gs.info("=== FlashdutySyncHelperAjax: Get Person Names ===");
+      gs.info("Input person IDs: " + personIdsStr);
       
       if (!personIdsStr) {
         gs.warn("No person IDs provided");
-        return JSON.stringify([]);
+        return JSON.stringify({ error: null, data: [] });
       }
       
       if (!config.app_key) {
         gs.error("flashduty.app_key not configured");
-        return JSON.stringify([]);
+        return JSON.stringify({ error: "app_key not configured", data: [] });
       }
       
       try {
@@ -328,11 +329,11 @@ FlashdutySyncHelperAjax.prototype = Object.extendsObject(
         var personIds = [];
         for (var i = 0; i < ids.length; i++) {
           var id = ids[i].trim();
-          if (id) personIds.push(parseInt(id));
+          if (id) personIds.push(parseInt(id, 10));
         }
         
         if (personIds.length === 0) {
-          return JSON.stringify([]);
+          return JSON.stringify({ error: null, data: [] });
         }
         
         var request = new sn_ws.RESTMessageV2();
@@ -345,8 +346,9 @@ FlashdutySyncHelperAjax.prototype = Object.extendsObject(
         var response = request.execute();
         var httpStatus = response.getStatusCode();
         var responseBody = response.getBody();
+        var requestId = response.getHeader("flashcat-request-id") || response.getHeader("Flashcat-Request-Id") || "N/A";
         
-        gs.info("Person API response: " + httpStatus);
+        gs.info("Person API response - Status: " + httpStatus + ", RequestId: " + requestId);
         
         if (httpStatus >= 200 && httpStatus < 300) {
           var data = JSON.parse(responseBody);
@@ -360,16 +362,20 @@ FlashdutySyncHelperAjax.prototype = Object.extendsObject(
                 name: items[j].person_name || ('User ' + items[j].person_id)
               });
             }
+            gs.info("Found " + persons.length + " persons");
           }
           
-          return JSON.stringify(persons);
+          return JSON.stringify({ error: null, data: persons });
         } else {
-          gs.error("Person API failed: " + httpStatus);
-          return JSON.stringify([]);
+          var errorMsg = "Person API failed: HTTP " + httpStatus + ", RequestId: " + requestId;
+          gs.error(errorMsg);
+          gs.error("Response: " + responseBody);
+          return JSON.stringify({ error: errorMsg, data: [], request_id: requestId });
         }
       } catch(e) {
-        gs.error("Exception: " + e.message);
-        return JSON.stringify([]);
+        var errorMsg = "Exception in getPersonNames: " + e.message;
+        gs.error(errorMsg);
+        return JSON.stringify({ error: errorMsg, data: [] });
       }
     },
     
@@ -381,15 +387,16 @@ FlashdutySyncHelperAjax.prototype = Object.extendsObject(
       var config = this._getConfig();
       
       gs.info("=== FlashdutySyncHelperAjax: Get Team Names ===");
+      gs.info("Input team IDs: " + teamIdsStr);
       
       if (!teamIdsStr) {
         gs.warn("No team IDs provided");
-        return JSON.stringify([]);
+        return JSON.stringify({ error: null, data: [] });
       }
       
       if (!config.app_key) {
         gs.error("flashduty.app_key not configured");
-        return JSON.stringify([]);
+        return JSON.stringify({ error: "app_key not configured", data: [] });
       }
       
       try {
@@ -397,11 +404,11 @@ FlashdutySyncHelperAjax.prototype = Object.extendsObject(
         var teamIds = [];
         for (var i = 0; i < ids.length; i++) {
           var id = ids[i].trim();
-          if (id) teamIds.push(parseInt(id));
+          if (id) teamIds.push(parseInt(id, 10));
         }
         
         if (teamIds.length === 0) {
-          return JSON.stringify([]);
+          return JSON.stringify({ error: null, data: [] });
         }
         
         var request = new sn_ws.RESTMessageV2();
@@ -414,8 +421,9 @@ FlashdutySyncHelperAjax.prototype = Object.extendsObject(
         var response = request.execute();
         var httpStatus = response.getStatusCode();
         var responseBody = response.getBody();
+        var requestId = response.getHeader("flashcat-request-id") || response.getHeader("Flashcat-Request-Id") || "N/A";
         
-        gs.info("Team API response: " + httpStatus);
+        gs.info("Team API response - Status: " + httpStatus + ", RequestId: " + requestId);
         
         if (httpStatus >= 200 && httpStatus < 300) {
           var data = JSON.parse(responseBody);
@@ -429,16 +437,20 @@ FlashdutySyncHelperAjax.prototype = Object.extendsObject(
                 name: items[j].team_name || ('Team ' + items[j].team_id)
               });
             }
+            gs.info("Found " + teams.length + " teams");
           }
           
-          return JSON.stringify(teams);
+          return JSON.stringify({ error: null, data: teams });
         } else {
-          gs.error("Team API failed: " + httpStatus);
-          return JSON.stringify([]);
+          var errorMsg = "Team API failed: HTTP " + httpStatus + ", RequestId: " + requestId;
+          gs.error(errorMsg);
+          gs.error("Response: " + responseBody);
+          return JSON.stringify({ error: errorMsg, data: [], request_id: requestId });
         }
       } catch(e) {
-        gs.error("Exception: " + e.message);
-        return JSON.stringify([]);
+        var errorMsg = "Exception in getTeamNames: " + e.message;
+        gs.error(errorMsg);
+        return JSON.stringify({ error: errorMsg, data: [] });
       }
     },
     
@@ -450,15 +462,16 @@ FlashdutySyncHelperAjax.prototype = Object.extendsObject(
       var config = this._getConfig();
       
       gs.info("=== FlashdutySyncHelperAjax: Get Schedule Names ===");
+      gs.info("Input schedule IDs: " + scheduleIdsStr);
       
       if (!scheduleIdsStr) {
         gs.warn("No schedule IDs provided");
-        return JSON.stringify([]);
+        return JSON.stringify({ error: null, data: [] });
       }
       
       if (!config.app_key) {
         gs.error("flashduty.app_key not configured");
-        return JSON.stringify([]);
+        return JSON.stringify({ error: "app_key not configured", data: [] });
       }
       
       try {
@@ -466,25 +479,33 @@ FlashdutySyncHelperAjax.prototype = Object.extendsObject(
         var scheduleIds = [];
         for (var i = 0; i < ids.length; i++) {
           var id = ids[i].trim();
-          if (id) scheduleIds.push(id);
+          // Convert to int64 (number) instead of string
+          if (id) scheduleIds.push(parseInt(id, 10));
         }
         
+        gs.info("Parsed schedule IDs (int64): " + JSON.stringify(scheduleIds));
+        
         if (scheduleIds.length === 0) {
-          return JSON.stringify([]);
+          return JSON.stringify({ error: null, data: [] });
         }
         
         var request = new sn_ws.RESTMessageV2();
         request.setHttpMethod("POST");
-        request.setEndpoint(this._buildApiUrl('/schedule/infos'));
+        var endpoint = this._buildApiUrl('/schedule/infos');
+        request.setEndpoint(endpoint);
         request.setRequestHeader("Content-Type", "application/json");
         request.setHttpTimeout(30000);
-        request.setRequestBody(JSON.stringify({ schedule_ids: scheduleIds }));
+        
+        var requestBody = JSON.stringify({ schedule_ids: scheduleIds });
+        gs.info("Request body: " + requestBody);
+        request.setRequestBody(requestBody);
         
         var response = request.execute();
         var httpStatus = response.getStatusCode();
         var responseBody = response.getBody();
+        var requestId = response.getHeader("flashcat-request-id") || response.getHeader("Flashcat-Request-Id") || "N/A";
         
-        gs.info("Schedule API response: " + httpStatus);
+        gs.info("Schedule API response - Status: " + httpStatus + ", RequestId: " + requestId);
         
         if (httpStatus >= 200 && httpStatus < 300) {
           var data = JSON.parse(responseBody);
@@ -499,16 +520,20 @@ FlashdutySyncHelperAjax.prototype = Object.extendsObject(
                 name: item.schedule_name || item.name || ('Schedule ' + (item.schedule_id || item.id))
               });
             }
+            gs.info("Found " + schedules.length + " schedules");
           }
           
-          return JSON.stringify(schedules);
+          return JSON.stringify({ error: null, data: schedules });
         } else {
-          gs.error("Schedule API failed: " + httpStatus);
-          return JSON.stringify([]);
+          var errorMsg = "Schedule API failed: HTTP " + httpStatus + ", RequestId: " + requestId;
+          gs.error(errorMsg);
+          gs.error("Response: " + responseBody);
+          return JSON.stringify({ error: errorMsg, data: [], request_id: requestId });
         }
       } catch(e) {
-        gs.error("Exception: " + e.message);
-        return JSON.stringify([]);
+        var errorMsg = "Exception in getScheduleNames: " + e.message;
+        gs.error(errorMsg);
+        return JSON.stringify({ error: errorMsg, data: [] });
       }
     },
 

@@ -293,16 +293,46 @@
   }
   
   .fd-escalation-path {
-    line-height: 1.6;
+    line-height: 1.8;
   }
   
   .fd-layer-item {
-    padding: 6px 0;
+    padding: 8px 0;
     border-bottom: 1px dashed #ddd;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  
+  .fd-error-section {
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .fd-error-title {
+    font-weight: 600;
+    color: #856404;
+    margin-bottom: 6px;
+  }
+  
+  .fd-error-item {
+    color: #856404;
+    font-size: 12px;
+    padding: 2px 0;
+    word-break: break-word;
   }
   
   .fd-layer-item:last-child {
     border-bottom: none;
+  }
+  
+  .fd-person-name {
+    color: #1976d2;
+    font-weight: 500;
   }
   
   /* Buttons */
@@ -384,9 +414,9 @@
     </div>
   </div>
 
-  <!-- Escalation Policy -->
+  <!-- Escalation Path -->
   <div class="fd-form-group">
-    <label for="policy_search">Select Escalation Policy</label>
+    <label for="policy_search">Select Escalation Path</label>
     <div class="fd-policy-wrapper">
       <input 
         type="text" 
@@ -402,7 +432,6 @@
       <input type="hidden" id="selected_policy" />
     </div>
     <div id="policy_details" style="display: none;" class="fd-policy-details">
-      <div style="font-weight: 600; margin-bottom: 8px;">Escalation Path:</div>
       <div id="policy_details_content"></div>
     </div>
   </div>

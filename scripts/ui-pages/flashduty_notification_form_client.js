@@ -490,7 +490,8 @@ var _policyDetailState = {
   layers: [],
   personMap: {},
   teamMap: {},
-  scheduleMap: {}
+  scheduleMap: {},
+  errors: []
 };
 
 /**
@@ -514,6 +515,7 @@ function displayPolicyDetails(layers) {
   _policyDetailState.personMap = {};
   _policyDetailState.teamMap = {};
   _policyDetailState.scheduleMap = {};
+  _policyDetailState.errors = [];
   
   // Collect all IDs from all layers
   var personIds = [];
@@ -591,12 +593,25 @@ function displayPolicyDetails(layers) {
 function onPersonNamesLoaded(response) {
   if (response) {
     try {
-      var persons = JSON.parse(response);
-      for (var i = 0; i < persons.length; i++) {
-        _policyDetailState.personMap[String(persons[i].id)] = persons[i].name;
+      var result = JSON.parse(response);
+      console.log("Person names response: " + JSON.stringify(result));
+      
+      // Handle new format with error and data fields
+      if (result.error) {
+        console.error("Person API error: " + result.error);
+        _policyDetailState.errors.push("👤 Person: " + result.error);
+      }
+      
+      var persons = result.data || result;
+      if (Array.isArray(persons)) {
+        for (var i = 0; i < persons.length; i++) {
+          _policyDetailState.personMap[String(persons[i].id)] = persons[i].name;
+          _policyDetailState.personMap[persons[i].id] = persons[i].name;
+        }
       }
     } catch(e) { 
-      console.error("Error parsing persons: " + e); 
+      console.error("Error parsing persons: " + e);
+      _policyDetailState.errors.push("👤 Person: Parse error - " + e.message);
     }
   }
   _policyDetailState.pendingRequests--;
@@ -606,12 +621,25 @@ function onPersonNamesLoaded(response) {
 function onTeamNamesLoaded(response) {
   if (response) {
     try {
-      var teams = JSON.parse(response);
-      for (var i = 0; i < teams.length; i++) {
-        _policyDetailState.teamMap[String(teams[i].id)] = teams[i].name;
+      var result = JSON.parse(response);
+      console.log("Team names response: " + JSON.stringify(result));
+      
+      // Handle new format with error and data fields
+      if (result.error) {
+        console.error("Team API error: " + result.error);
+        _policyDetailState.errors.push("👥 Team: " + result.error);
+      }
+      
+      var teams = result.data || result;
+      if (Array.isArray(teams)) {
+        for (var i = 0; i < teams.length; i++) {
+          _policyDetailState.teamMap[String(teams[i].id)] = teams[i].name;
+          _policyDetailState.teamMap[teams[i].id] = teams[i].name;
+        }
       }
     } catch(e) { 
-      console.error("Error parsing teams: " + e); 
+      console.error("Error parsing teams: " + e);
+      _policyDetailState.errors.push("👥 Team: Parse error - " + e.message);
     }
   }
   _policyDetailState.pendingRequests--;
@@ -621,12 +649,29 @@ function onTeamNamesLoaded(response) {
 function onScheduleNamesLoaded(response) {
   if (response) {
     try {
-      var schedules = JSON.parse(response);
-      for (var i = 0; i < schedules.length; i++) {
-        _policyDetailState.scheduleMap[String(schedules[i].id)] = schedules[i].name;
+      var result = JSON.parse(response);
+      console.log("Schedule names response: " + JSON.stringify(result));
+      
+      // Handle new format with error and data fields
+      if (result.error) {
+        console.error("Schedule API error: " + result.error);
+        _policyDetailState.errors.push("📅 Schedule: " + result.error);
       }
+      
+      var schedules = result.data || result;
+      if (Array.isArray(schedules)) {
+        for (var i = 0; i < schedules.length; i++) {
+          // Store with both string and number keys to ensure matching
+          var scheduleId = schedules[i].id;
+          var scheduleName = schedules[i].name;
+          _policyDetailState.scheduleMap[String(scheduleId)] = scheduleName;
+          _policyDetailState.scheduleMap[scheduleId] = scheduleName;
+        }
+      }
+      console.log("Schedule map: " + JSON.stringify(_policyDetailState.scheduleMap));
     } catch(e) { 
-      console.error("Error parsing schedules: " + e); 
+      console.error("Error parsing schedules: " + e);
+      _policyDetailState.errors.push("📅 Schedule: Parse error - " + e.message);
     }
   }
   _policyDetailState.pendingRequests--;
@@ -641,6 +686,12 @@ function checkPolicyDetailsComplete() {
 
 /**
  * Render policy details content after all names are fetched
+ * Note: Starts from layer 2 (index 1) since layer 1 members are already selected above
+ * 
+ * Escalation condition logic:
+ * - Each layer's escalation window and condition come from the PREVIOUS layer
+ * - force_escalate = false (default): escalate if not acknowledged
+ * - force_escalate = true: escalate even if acknowledged but not resolved
  */
 function renderPolicyDetailsContent() {
   var detailsContent = document.getElementById('policy_details_content');
@@ -650,19 +701,50 @@ function renderPolicyDetailsContent() {
   var personMap = _policyDetailState.personMap;
   var teamMap = _policyDetailState.teamMap;
   var scheduleMap = _policyDetailState.scheduleMap;
+  var errors = _policyDetailState.errors;
   
-  var html = '<div class="fd-escalation-path"><strong>Escalation Path:</strong>';
-  var cumTime = 0;
+  var html = '';
   
-  for (var i = 0; i < layers.length; i++) {
+  // Display errors if any
+  if (errors && errors.length > 0) {
+    html += '<div class="fd-error-section">';
+    html += '<div class="fd-error-title">⚠️ Failed to load some data:</div>';
+    for (var e = 0; e < errors.length; e++) {
+      html += '<div class="fd-error-item">' + errors[e] + '</div>';
+    }
+    html += '</div>';
+  }
+  
+  // Skip layer 1 since members are already selected in the form above
+  if (layers.length <= 1) {
+    html += '<div class="fd-escalation-path">✅ No additional escalation layers</div>';
+    detailsContent.innerHTML = html;
+    return;
+  }
+  
+  html += '<div class="fd-escalation-path">';
+  
+  // Start from layer 2 (index 1) to skip the first layer
+  for (var i = 1; i < layers.length; i++) {
     var layer = layers[i];
+    var prevLayer = layers[i - 1];
     var targetNames = [];
     
-    // Collect person names
+    // Get escalation condition from PREVIOUS layer
+    var escalateWindow = prevLayer.escalate_window || 0;
+    var forceEscalate = prevLayer.force_escalate || false;
+    
+    // Build condition text based on force_escalate flag
+    var conditionText = forceEscalate 
+      ? '⏱️ If not resolved within ' + escalateWindow + ' min'
+      : '⏱️ If not acknowledged within ' + escalateWindow + ' min';
+    
+    // Collect person names with user icon
     if (layer.target && layer.target.person_ids) {
       for (var j = 0; j < layer.target.person_ids.length; j++) {
         var pid = String(layer.target.person_ids[j]);
-        targetNames.push(personMap[pid] || pid);
+        var personName = personMap[pid] || personMap[layer.target.person_ids[j]] || pid;
+        targetNames.push('<span class="fd-person-name">👤 ' + personName + '</span>');
       }
     }
     
@@ -670,24 +752,28 @@ function renderPolicyDetailsContent() {
     if (layer.target && layer.target.team_ids) {
       for (var k = 0; k < layer.target.team_ids.length; k++) {
         var tid = String(layer.target.team_ids[k]);
-        var teamName = teamMap[tid] || ('Team ' + tid);
-        targetNames.push('<span class="fd-team-badge">' + teamName + '</span>');
+        var teamName = teamMap[tid] || teamMap[layer.target.team_ids[k]] || ('Team ' + tid);
+        targetNames.push('<span class="fd-team-badge">👥 ' + teamName + '</span>');
       }
     }
     
-    // Collect schedule names
+    // Collect schedule names from schedule_to_role_ids map (key is schedule_id)
     if (layer.target && layer.target.schedule_to_role_ids) {
       for (var scheduleId in layer.target.schedule_to_role_ids) {
         if (layer.target.schedule_to_role_ids.hasOwnProperty(scheduleId)) {
-          var scheduleName = scheduleMap[String(scheduleId)] || ('Schedule ' + scheduleId);
-          targetNames.push('<span class="fd-schedule-badge">' + scheduleName + '</span>');
+          // Try multiple key formats to match schedule name
+          var scheduleName = scheduleMap[scheduleId] || 
+                            scheduleMap[String(scheduleId)] || 
+                            scheduleMap[parseInt(scheduleId)] ||
+                            ('Schedule ' + scheduleId);
+          console.log("Looking up schedule " + scheduleId + " -> " + scheduleName);
+          targetNames.push('<span class="fd-schedule-badge">📅 ' + scheduleName + '</span>');
         }
       }
     }
     
-    var targetDisplay = targetNames.length > 0 ? targetNames.join(', ') : 'Not specified';
-    html += '<div class="fd-layer-item">' + cumTime + ' minutes after incident remains open, escalate to ' + targetDisplay + '</div>';
-    cumTime += layer.escalate_window || 0;
+    var targetDisplay = targetNames.length > 0 ? targetNames.join(', ') : '⚠️ Not specified';
+    html += '<div class="fd-layer-item">' + conditionText + ' → escalate to ' + targetDisplay + '</div>';
   }
   
   html += '</div>';
