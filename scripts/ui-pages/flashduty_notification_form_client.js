@@ -87,53 +87,6 @@ function loadFlashdutyConfig(callback) {
   });
 }
 
-// Hide ServiceNow performance analytics indicators
-hidePerformanceIndicators();
-
-function hidePerformanceIndicators() {
-  // Hide ServiceNow performance analytics elements
-  setTimeout(function() {
-    var selectors = [
-      '.performance-analytics',
-      '.response-time-indicator',
-      '[data-analytics-trigger]',
-      '.response-time-decorator',
-      '[class*="response-time"]',
-      '[class*="performance"]'
-    ];
-    
-    selectors.forEach(function(selector) {
-      try {
-        var elements = document.querySelectorAll(selector);
-        for (var i = 0; i < elements.length; i++) {
-          elements[i].style.display = 'none';
-          elements[i].style.visibility = 'hidden';
-        }
-      } catch(e) {
-        // Ignore selector errors
-      }
-    });
-    
-    // Also check parent window (modal context)
-    if (window.parent && window.parent.document) {
-      selectors.forEach(function(selector) {
-        try {
-          var elements = window.parent.document.querySelectorAll(selector);
-          for (var i = 0; i < elements.length; i++) {
-            elements[i].style.display = 'none';
-            elements[i].style.visibility = 'hidden';
-          }
-        } catch(e) {
-          // Ignore cross-origin or selector errors
-        }
-      });
-    }
-  }, 100);
-  
-  // Repeat check after additional delay for late-loading elements
-  setTimeout(hidePerformanceIndicators, 1000);
-}
-
 /**
  * Initialize form with current incident data
  */
