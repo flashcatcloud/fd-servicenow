@@ -95,10 +95,12 @@ FlashdutySyncHelperAjax.prototype = Object.extendsObject(
         var helper = new FlashdutySyncHelper();
         var result = helper.sendIncidentWebhook(gr, groupId, notifyType, members, externalOption);
         
-        if (result) {
+        if (result.success) {
           return "Success: Incident " + gr.number + " sent to Flashduty";
         } else {
-          return "Failed: Unable to send " + gr.number + ". Check system logs.";
+          var errorMsg = "Failed: Unable to send " + gr.number + ".\n\nError: " + (result.error || "Unknown error");
+          gs.error("FlashdutySyncHelperAjax: " + errorMsg);
+          return errorMsg;
         }
       } else {
         gs.error("FlashdutySyncHelperAjax: Incident not found - " + sysId);

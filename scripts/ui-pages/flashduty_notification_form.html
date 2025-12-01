@@ -25,6 +25,9 @@
     display: block !important;
   }
   
+  #page_timing_div {
+     display: none !important;
+  }
   /* Form container */
   .flashduty-form {
     padding: 20px;
@@ -205,6 +208,34 @@
     transform: translateY(-50%);
     pointer-events: none;
     color: #666;
+  }
+  
+  .fd-policy-clear {
+    position: absolute;
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #999;
+    font-size: 18px;
+    font-weight: bold;
+    width: 20px;
+    height: 20px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+    line-height: 1;
+  }
+  
+  .fd-policy-clear:hover {
+    background-color: #f0f0f0;
+    color: #333;
+  }
+  
+  .fd-policy-clear.show {
+    display: flex;
   }
   
   .fd-policy-dropdown {
@@ -425,6 +456,7 @@
         placeholder="Search or select policy..."
         autocomplete="off"
       />
+      <span id="policy_clear_btn" class="fd-policy-clear" title="Clear selection">×</span>
       <span class="fd-policy-icon">▼</span>
       <div id="policy_dropdown" class="fd-policy-dropdown">
         <div class="fd-policy-no-results">Please select Assignment Group first</div>
