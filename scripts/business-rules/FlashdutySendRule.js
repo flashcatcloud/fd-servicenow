@@ -15,6 +15,7 @@
 (function executeRule(current) {
     var push_url = gs.getProperty('flashduty.push_url', '');   
     var body = {
+      action_type:"update",
       number: current.getValue("number"),
       sys_id: current.getUniqueValue(),
       state: current.getDisplayValue("state")
