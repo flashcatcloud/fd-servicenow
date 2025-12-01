@@ -268,10 +268,7 @@ Handles server-side webhook communication with Flashduty.
 | **Protection policy** | `itil` |
 | **Description** | `Server-side helper for Flashduty incident webhook integration` |
 
-**Script**: Copy the entire contents from:
-```
-scripts/script-includes/FlashdutySyncHelper.js
-```
+**Script**: Copy the entire contents from [`scripts/script-includes/FlashdutySyncHelper.js`](../scripts/script-includes/FlashdutySyncHelper.js)
 
 💡 **Implementation Note**: This component includes enhanced error reporting that returns detailed error messages to the client.
 
@@ -293,10 +290,7 @@ Provides client-callable AJAX endpoints for the notification dialog.
 | **Protection policy** | `itil` |
 | **Description** | `Client-callable AJAX processor for Flashduty notification dialog` |
 
-**Script**: Copy the entire contents from:
-```
-scripts/script-includes/FlashdutySyncHelperAjax.js
-```
+**Script**: Copy the entire contents from [`scripts/script-includes/FlashdutySyncHelperAjax.js`](../scripts/script-includes/FlashdutySyncHelperAjax.js)
 
 > ⚠️ **Important**: Ensure "Client callable" is checked. The UI Page cannot function without this.
 
@@ -318,11 +312,11 @@ Provides the notification dialog interface with escalation policy selection.
 **Configuration Steps**:
 
 1. **HTML Field**: 
-   - Copy the entire contents from `scripts/ui-pages/flashduty_notification_form.html`
+   - Copy the entire contents from [`scripts/ui-pages/flashduty_notification_form.html`](../scripts/ui-pages/flashduty_notification_form.html)
    - This includes styles and form structure
 
 2. **Client Script Field**: 
-   - Copy the entire contents from `scripts/ui-pages/flashduty_notification_form_client.js`
+   - Copy the entire contents from [`scripts/ui-pages/flashduty_notification_form_client.js`](../scripts/ui-pages/flashduty_notification_form_client.js)
    - This includes dialog logic, escalation policy loading, and form handling
 
 3. Click **Submit** to save
@@ -361,10 +355,7 @@ Adds the "Send to Flashduty" button to the Incident form.
 | **Protection policy** | `itil` |
 | **Order** | `100` *(adjust to position button as desired)* |
 
-**Script Field**: Copy the entire contents from:
-```
-scripts/ui-actions/FlashdutySendButton.js
-```
+**Script Field**: Copy the entire contents from [`scripts/ui-actions/FlashdutySendButton.js`](../scripts/ui-actions/FlashdutySendButton.js)
 
 **Validations Included**:
 - ✅ Prevents submission of unsaved records
@@ -391,10 +382,7 @@ Automatically synchronizes incidents to Flashduty when resolved or closed.
 | **Delete** | ⬜ Unchecked |
 | **Filter Conditions** | `State` **is** `Resolved` **OR** `State` **is** `Closed` |
 
-**Script Field**: Copy the entire contents from:
-```
-scripts/business-rules/FlashdutySendRule.js
-```
+**Script Field**: Copy the entire contents from [`scripts/business-rules/FlashdutySendRule.js`](../scripts/business-rules/FlashdutySendRule.js)
 
 **Behavior**:
 - Triggers when incident state changes to Resolved or Closed
