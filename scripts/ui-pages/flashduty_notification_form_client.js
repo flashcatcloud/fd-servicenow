@@ -1001,97 +1001,61 @@ function submitForm() {
 }
 
 /**
- * Close the dialog using multiple approaches for reliability
+ * Close the dialog - focus on DOM manipulation method that works
  */
 function closeDialog() {
   console.log("=== Attempting to close dialog ===");
-  
-  // Method 1: Use GlideDialogWindow API (most reliable for GlideDialogForm)
-  try {
-    if (typeof GlideDialogWindow !== 'undefined') {
-      var dialogWindow = GlideDialogWindow.get();
-      if (dialogWindow) {
-        console.log("Method 1: Closing via GlideDialogWindow.get()");
-        dialogWindow.destroy();
-        return;
-      }
-    }
-  } catch(e) {
-    console.warn("Method 1 failed: " + e.message);
-  }
-  
-  // Method 2: Access parent's GlideModal
-  try {
-    if (window.parent && window.parent.GlideModal) {
-      console.log("Method 2: Closing via parent GlideModal");
-      var modals = window.parent.GlideModal.getAll();
-      if (modals && modals.length > 0) {
-        for (var i = 0; i < modals.length; i++) {
-          modals[i].destroy();
-        }
-        return;
-      }
-    }
-  } catch(e) {
-    console.warn("Method 2 failed: " + e.message);
-  }
-  
-  // Method 3: Use parent's angular scope (for newer ServiceNow versions)
-  try {
-    if (window.parent && window.parent.angular) {
-      var modal = window.parent.document.querySelector('[uib-modal-window]');
-      if (modal) {
-        var scope = window.parent.angular.element(modal).scope();
-        if (scope && scope.$close) {
-          console.log("Method 3: Closing via Angular $close");
-          scope.$close();
-          return;
-        } else if (scope && scope.$dismiss) {
-          console.log("Method 3: Closing via Angular $dismiss");
-          scope.$dismiss();
-          return;
-        }
-      }
-    }
-  } catch(e) {
-    console.warn("Method 3 failed: " + e.message);
-  }
-  
-  // Method 4: Direct DOM manipulation (fallback)
-  try {
-    if (window.parent && window.parent.document) {
-      console.log("Method 4: Closing via DOM manipulation");
-      
-      // Find and close all modals
-      var modals = window.parent.document.querySelectorAll('.modal, [role="dialog"]');
-      var backdrops = window.parent.document.querySelectorAll('.modal-backdrop, .modal-backdrop-ng');
-      
-      for (var i = 0; i < modals.length; i++) {
+
+try {
+  if (window.parent && window.parent.document) {
+    const modals = window.parent.document.querySelectorAll('#FormDialog, [role="dialog"]');
+    const grayBackground = window.parent.document.querySelectorAll('#grayBackground');
+
+    console.log("Found " + modals.length + " modals and " + grayBackground.length + " grayBackground");
+
+    // Remove modals
+    for (var i = 0; i < modals.length; i++) {
         if (modals[i].parentNode) {
-          modals[i].parentNode.removeChild(modals[i]);
+            console.log("Removing modal element");
+            modals[i].parentNode.removeChild(modals[i]);
         }
-      }
-      
-      for (var j = 0; j < backdrops.length; j++) {
-        if (backdrops[j].parentNode) {
-          backdrops[j].parentNode.removeChild(backdrops[j]);
-        }
-      }
-      
-      // Clean up body styles
-      var body = window.parent.document.body;
-      if (body) {
-        body.classList.remove('modal-open');
-        body.style.overflow = '';
-        body.style.paddingRight = '';
-      }
-      
-      console.log("Method 4: Dialog closed successfully");
     }
-  } catch(e) {
-    console.error("Method 4 failed: " + e.message);
+
+    // Remove grayBackground
+    for (var j = 0; j < grayBackground.length; j++) {
+        if (grayBackground[j].parentNode) {
+            console.log("Removing grayBackground element");
+            grayBackground[j].parentNode.removeChild(grayBackground[j]);
+        }
+    }
+
+    // Clean up body styles carefully
+    var body = window.parent.document.body;
+    if (body) {
+        // Check if there are any remaining modals
+        var remainingModals = window.parent.document.querySelectorAll('.modal, [role="dialog"]');
+        console.log("Remaining modals after cleanup: " + remainingModals.length);
+
+        if (remainingModals.length === 0) {
+            console.log("Cleaning up body styles");
+            body.classList.remove('modal-open');
+
+            // Only reset overflow if it was set to hidden
+            if (body.style.overflow === 'hidden') {
+                body.style.overflow = '';
+            }
+
+            // Only reset padding if it exists
+            if (body.style.paddingRight) {
+                body.style.paddingRight = '';
+            }
+        }
+    }
   }
-  
-  console.log("=== Dialog close attempt completed ===");
+} catch (e) {
+  console.error("Dialog close failed: " + e.message);
+}
+
+console.log("=== Dialog close attempt completed ===");
 }
 
